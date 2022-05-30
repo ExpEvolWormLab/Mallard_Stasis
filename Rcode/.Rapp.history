@@ -1,0 +1,274 @@
+rm(list = ls())#
+gc()#
+library(MCMCglmm)#
+library(psych)#
+library(ggplot2)#
+library(dplyr)#
+library(gplots)#
+library(data.table)#
+library(matrixStats)#
+library(boot)#
+library(Rmisc)#
+library(dae)#
+library(nlme)#
+library(parallel)#
+library(RColorBrewer)
+#### Back on local computer#
+rm(list=ls())#
+gc()#
+#
+load('~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_07/Output_files/RData/Tensor_processed_SMALL.Rdata')#
+source('~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_07/Rcode/functions_tensor.R', chdir = TRUE)#
+load('~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_07/Output_files/RData/File_for_parallel_processing.RData')#
+for(i in 1: MCMCsamp){#
+	for(k in 1:m){#
+		if(i%%100!=0) rand.Garray_corrected[,,k,i] <- matrix(List_output[[i%%100]][,,k], ncol = n)#
+		if(i%%100==0) rand.Garray_corrected[,,k,i] <- matrix(List_output[[100]][,,k], ncol = n)		#
+	}#
+}#
+dimnames(rand.Garray_corrected) <- list(traitnames, traitnames, Gnames)#
+MCMC.covtensor <- covtensor(Garray)#
+#MCMC.covtensor$tensor.summary#
+nnonzero <- min(n * (n + 1)/2, m - 1)#
+MCMC.covtensor.rand <- covtensor(rand.Garray_corrected)#
+HPD.eT.val <- cbind(HPDinterval(as.mcmc(MCMC.covtensor$MCMC.S.val[, 1:nnonzero]), prob = 0.95), #
+HPDinterval(as.mcmc(MCMC.covtensor.rand$MCMC.S.val[, 1:nnonzero]), prob = 0.95))#
+round(HPD.eT.val, 3)#
+HPD.eT.val_80 <- cbind(HPDinterval(as.mcmc(MCMC.covtensor$MCMC.S.val[, 1:nnonzero]), prob = 0.80), #
+HPDinterval(as.mcmc(MCMC.covtensor.rand$MCMC.S.val[, 1:nnonzero]), prob = 0.80))#
+round(HPD.eT.val_80, 3)#
+#
+##
+# Figure A1#
+quartz()#
+par(mfrow=c(1,1))#
+#
+plot((1:nnonzero)-0.2,unique(MCMC.covtensor$tensor.summary[1:(n*nnonzero),1]),xlab="",ylab=expression(alpha),pch=16,cex=1,xaxt="n",frame.plot=F,xlim=c(0.5,6.5),ylim=c(0,max(HPD.eT.val)),type="n")#
+axis(1,at=1:nnonzero,labels=c(paste("E",rep(1:nnonzero),sep="")))#
+arrows((1:nnonzero)-0.2, HPD.eT.val[,2],(1:nnonzero)-0.2,HPD.eT.val[,1],length=0.1,angle=90,code=3)#
+arrows((1:nnonzero)-0.2, HPD.eT.val_80[,2],(1:nnonzero)-0.2, HPD.eT.val_80[,1],length=0.1,angle=90,code=0,lwd=4,col="red")#
+#
+arrows((1:nnonzero)+0.2, HPD.eT.val[,4],(1:nnonzero)+0.2,HPD.eT.val[,3],length=0.1,angle=90,lty=5,code=3)#
+#
+arrows((1:nnonzero)+0.2, HPD.eT.val_80[,4],(1:nnonzero)+0.2, HPD.eT.val_80[,3],length=0.1,angle=90,code=0,lwd=4,col="orange")#
+#
+points((1:nnonzero)-0.2,unique(MCMC.covtensor$tensor.summary[1:(n*nnonzero),1]),pch=21,cex=1,bg="black")#
+#
+points((1:nnonzero)+0.2, unique(MCMC.covtensor.rand$tensor.summary[1:(n*nnonzero),1]),pch=8,cex=1,col="grey")#
+#
+legend(3.5,.013,legend=c("observed","randomised"),lty=c(1,5),pch=c(16,8),cex=1,bty="n")#
+HPD.tensor.coord <- array(,c(m,2,nnonzero))#
+dimnames(HPD.tensor.coord) <- list(Gnames,c("lower","upper"), paste("E",1:6,sep=" "))#
+for (i in 1:m){#
+  for (j in 1:nnonzero){#
+    HPD.tensor.coord[i,,j] <- HPDinterval(as.mcmc(MCMC.covtensor$MCMC.G.coord[i,j,]),prob=0.95)[1:2]#
+  }#
+}#
+HPD.tensor.coord_80 <- array(,c(m,2,nnonzero))#
+dimnames(HPD.tensor.coord_80) <- list(Gnames,c("lower","upper"), paste("E",1:6,sep=" "))#
+for (i in 1:m){#
+  for (j in 1:nnonzero){#
+    HPD.tensor.coord_80[i,,j] <- HPDinterval(as.mcmc(MCMC.covtensor$MCMC.G.coord[i,j,]),prob=0.80)[1:2]#
+  }#
+}#
+#Figure A2#
+par(mfrow=c(1,2))#
+#
+for (k in 1:2){  #
+plot(1:m,MCMC.covtensor$av.G.coord[,k,],ylab="",xlab="",pch=16,xaxt="n",frame.plot=F,xlim=c(0.5,m+.5),ylim=c(-1,.5),main = "",type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.tensor.coord[,2,k],1:m,HPD.tensor.coord[,1,k],length=0.05,angle=90,code=3)#
+#
+arrows(1:m,HPD.tensor.coord_80[,2,k],1:m, HPD.tensor.coord_80[,1,k],length=0.05,angle=90,code=0,col="red",lwd=3)#
+#
+points(1:m,MCMC.covtensor$av.G.coord[,k,],pch=21,bg="grey")#
+mtext(dimnames(MCMC.covtensor$av.G.coord)[[2]][k],side=3,at=0,font=2)#
+}#
+#
+round(MCMC.covtensor$tensor.summary[1:(n*2),2:dim(MCMC.covtensor$tensor.summary)[2]], 3)#
+#
+# How much variation is explained ?
+abs(MCMC.covtensor$tensor.summary[7,2])/sum(abs(MCMC.covtensor$tensor.summary[(n+1):(2*n),2]))#
+#e21: 55%#
+abs(MCMC.covtensor$tensor.summary[8,2])/sum(abs(MCMC.covtensor$tensor.summary[(n+1):(2*n),2]))#
+#e22:34%#
+abs(MCMC.covtensor$tensor.summary[9,2])/sum(abs(MCMC.covtensor$tensor.summary[(n+1):(2*n),2]))#
+#e23: 6%#
+#
+e11 <- c(as.numeric(MCMC.covtensor$tensor.summary[1,3:dim(MCMC.covtensor$tensor.summary)[2]]))#
+e12 <- c(as.numeric(MCMC.covtensor$tensor.summary[2,3:dim(MCMC.covtensor$tensor.summary)[2]]))#
+e13 <- c(as.numeric(MCMC.covtensor$tensor.summary[3,3:dim(MCMC.covtensor$tensor.summary)[2]]))#
+#
+e11.proj <- apply(Garray, 3:4, proj, b = e11)#
+e12.proj <- apply(Garray, 3:4, proj, b = e12)#
+e13.proj <- apply(Garray, 3:4, proj, b = e13)#
+HPD.e11 <- HPDinterval(t(as.mcmc(e11.proj)),prob = 0.95)#
+HPD.e12 <- HPDinterval(t(as.mcmc(e12.proj)),prob = 0.95)#
+HPD.e13 <- HPDinterval(t(as.mcmc(e13.proj)),prob = 0.95)#
+#
+e21 <- c(as.numeric(MCMC.covtensor$tensor.summary[n+1,3:dim(MCMC.covtensor$tensor.summary)[2]]))#
+e22 <- c(as.numeric(MCMC.covtensor$tensor.summary[n+2,3:dim(MCMC.covtensor$tensor.summary)[2]]))#
+e23 <- c(as.numeric(MCMC.covtensor$tensor.summary[n+3,3:dim(MCMC.covtensor$tensor.summary)[2]]))#
+#
+e21.proj <- apply(Garray, 3:4, proj, b = e21)#
+e22.proj <- apply(Garray, 3:4, proj, b = e22)#
+e23.proj <- apply(Garray, 3:4, proj, b = e23)#
+HPD.e21 <- HPDinterval(t(as.mcmc(e21.proj)),prob = 0.95)#
+HPD.e22 <- HPDinterval(t(as.mcmc(e22.proj)),prob = 0.95)#
+HPD.e23 <- HPDinterval(t(as.mcmc(e23.proj)),prob = 0.95)#
+HPD.e11_80 <- HPDinterval(t(as.mcmc(e11.proj)),prob = 0.80)#
+HPD.e12_80 <- HPDinterval(t(as.mcmc(e12.proj)),prob = 0.80)#
+HPD.e13_80 <- HPDinterval(t(as.mcmc(e13.proj)),prob = 0.80)#
+#
+HPD.e21_80 <- HPDinterval(t(as.mcmc(e21.proj)),prob = 0.80)#
+HPD.e22_80 <- HPDinterval(t(as.mcmc(e22.proj)),prob = 0.80)#
+HPD.e23_80 <- HPDinterval(t(as.mcmc(e23.proj)),prob = 0.80)#
+par(mfrow=c(2,3))#
+par(mar=c(5,4,4,2))#
+plot(1:m,rowMeans(e11.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e11))),las=2,type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e11[,2],1:m,HPD.e11[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e11_80[,2],1:m,HPD.e11_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e11.proj),pch=21,bg="grey")#
+mtext("e11 (66%)",side=3,at=0,font=2)#
+#
+plot(1:m,rowMeans(e12.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e12))),las=2,type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e12[,2],1:m,HPD.e12[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e12_80[,2],1:m,HPD.e12_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e12.proj),pch=21,bg="grey")#
+mtext("e12 (18%)",side=3,at=0,font=2)#
+plot(1:m,rowMeans(e13.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e13))),las=2,type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e13[,2],1:m,HPD.e13[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e13_80[,2],1:m,HPD.e13_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e13.proj),pch=21,bg="grey")#
+mtext("e13",side=3,at=0,font=2)#
+plot(1:m,rowMeans(e21.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e21))),type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e21[,2],1:m,HPD.e21[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e21_80[,2],1:m,HPD.e21_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e21.proj),pch=21,bg="grey")#
+mtext("e21 (60%)",side=3,at=0,font=2)#
+#
+plot(1:m,rowMeans(e22.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e22))),type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e22[,2],1:m,HPD.e22[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e22_80[,2],1:m,HPD.e22_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e22.proj),pch=21,bg="grey")#
+mtext("e22 (31%)",side=3,at=0,font=2)#
+plot(1:m,rowMeans(e23.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e23))),type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e23[,2],1:m,HPD.e23[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e23_80[,2],1:m,HPD.e23_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e23.proj),pch=21,bg="grey")#
+mtext("e23 (31%)",side=3,at=0,font=2)
+par(mfrow=c(2,3))#
+par(mar=c(5,4,4,2))#
+plot(1:m,rowMeans(e11.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e11))),las=2,type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e11[,2],1:m,HPD.e11[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e11_80[,2],1:m,HPD.e11_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e11.proj),pch=21,bg="grey")#
+mtext("e11",side=3,at=0,font=2)#
+#
+plot(1:m,rowMeans(e12.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e12))),las=2,type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e12[,2],1:m,HPD.e12[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e12_80[,2],1:m,HPD.e12_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e12.proj),pch=21,bg="grey")#
+mtext("e12",side=3,at=0,font=2)#
+plot(1:m,rowMeans(e13.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e13))),las=2,type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e13[,2],1:m,HPD.e13[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e13_80[,2],1:m,HPD.e13_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e13.proj),pch=21,bg="grey")#
+mtext("e13",side=3,at=0,font=2)#
+plot(1:m,rowMeans(e21.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e21))),type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e21[,2],1:m,HPD.e21[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e21_80[,2],1:m,HPD.e21_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e21.proj),pch=21,bg="grey")#
+mtext("e21",side=3,at=0,font=2)#
+#
+plot(1:m,rowMeans(e22.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e22))),type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e22[,2],1:m,HPD.e22[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e22_80[,2],1:m,HPD.e22_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e22.proj),pch=21,bg="grey")#
+mtext("e22",side=3,at=0,font=2)#
+plot(1:m,rowMeans(e23.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e23))),type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.e23[,2],1:m,HPD.e23[,1],length=0.1,angle=90,code=3)#
+arrows(1:m,HPD.e23_80[,2],1:m,HPD.e23_80[,1],length=0.1,angle=90,code=0,lwd=3,col="red")#
+points(1:m,rowMeans(e23.proj),pch=21,bg="grey")#
+mtext("e23",side=3,at=0,font=2)
+#Figure A2#
+par(mfrow=c(1,2))#
+#
+for (k in 1:2){  #
+plot(1:m,MCMC.covtensor$av.G.coord[,k,],ylab="",xlab="",pch=16,xaxt="n",frame.plot=F,xlim=c(0.5,m+.5),ylim=c(-1,.5),main = "",type="n")#
+axis(1,at=1:m,labels=Gnames,las=2)#
+arrows(1:m,HPD.tensor.coord[,2,k],1:m,HPD.tensor.coord[,1,k],length=0.05,angle=90,code=3)#
+#
+arrows(1:m,HPD.tensor.coord_80[,2,k],1:m, HPD.tensor.coord_80[,1,k],length=0.05,angle=90,code=0,col="red",lwd=3)#
+#
+points(1:m,MCMC.covtensor$av.G.coord[,k,],pch=21,bg="grey")#
+mtext(dimnames(MCMC.covtensor$av.G.coord)[[2]][k],side=3,at=0,font=2)#
+}#
+#
+round(MCMC.covtensor$tensor.summary[1:(n*2),2:dim(MCMC.covtensor$tensor.summary)[2]], 3)
+quartz()#
+par(mfrow=c(1,1))#
+#
+plot((1:nnonzero)-0.2,unique(MCMC.covtensor$tensor.summary[1:(n*nnonzero),1]),xlab="",ylab=expression(alpha),pch=16,cex=1,xaxt="n",frame.plot=F,xlim=c(0.5,6.5),ylim=c(0,max(HPD.eT.val)),type="n")#
+axis(1,at=1:nnonzero,labels=c(paste("E",rep(1:nnonzero),sep="")))#
+arrows((1:nnonzero)-0.2, HPD.eT.val[,2],(1:nnonzero)-0.2,HPD.eT.val[,1],length=0.1,angle=90,code=3)#
+arrows((1:nnonzero)-0.2, HPD.eT.val_80[,2],(1:nnonzero)-0.2, HPD.eT.val_80[,1],length=0.1,angle=90,code=0,lwd=4,col="red")#
+#
+arrows((1:nnonzero)+0.2, HPD.eT.val[,4],(1:nnonzero)+0.2,HPD.eT.val[,3],length=0.1,angle=90,lty=5,code=3)#
+#
+arrows((1:nnonzero)+0.2, HPD.eT.val_80[,4],(1:nnonzero)+0.2, HPD.eT.val_80[,3],length=0.1,angle=90,code=0,lwd=4,col="orange")#
+#
+points((1:nnonzero)-0.2,unique(MCMC.covtensor$tensor.summary[1:(n*nnonzero),1]),pch=21,cex=1,bg="black")#
+#
+points((1:nnonzero)+0.2, unique(MCMC.covtensor.rand$tensor.summary[1:(n*nnonzero),1]),pch=8,cex=1,col="grey")#
+#
+legend(3.5,.013,legend=c("observed","randomised"),lty=c(1,5),pch=c(16,8),cex=1,bty="n")#
+HPD.tensor.coord <- array(,c(m,2,nnonzero))#
+dimnames(HPD.tensor.coord) <- list(Gnames,c("lower","upper"), paste("E",1:6,sep=" "))#
+for (i in 1:m){#
+  for (j in 1:nnonzero){#
+    HPD.tensor.coord[i,,j] <- HPDinterval(as.mcmc(MCMC.covtensor$MCMC.G.coord[i,j,]),prob=0.95)[1:2]#
+  }#
+}#
+HPD.tensor.coord_80 <- array(,c(m,2,nnonzero))#
+dimnames(HPD.tensor.coord_80) <- list(Gnames,c("lower","upper"), paste("E",1:6,sep=" "))#
+for (i in 1:m){#
+  for (j in 1:nnonzero){#
+    HPD.tensor.coord_80[i,,j] <- HPDinterval(as.mcmc(MCMC.covtensor$MCMC.G.coord[i,j,]),prob=0.80)[1:2]#
+  }#
+}
+rm(list=ls())#
+gc()#
+#load libraries#
+library(rstan)#
+library(coda)#
+library(matrixStats)#
+library(data.table)#
+library(lme4)#
+library(MCMCglmm)#
+#
+load('~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_07/Output_files/RData/VCV_A6140.RData')#
+load('~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_07/Output_files/RData/VCV_CA50.RData')#
+load('~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_07/Output_files/RData/VCV_CA100.RData')
+load()
+rm(list=ls())#
+gc()#
+#load libraries#
+library(rstan)#
+library(coda)#
+library(matrixStats)#
+library(data.table)#
+library(lme4)#
+library(MCMCglmm)
