@@ -121,7 +121,7 @@ for(i in sample(1:nrow(model_MCMC$Sol),1000)){
 temp_post_mod_gamma <- t(apply(temp_post_mod_gamma,1, extract_gamma_EV))
 apply(temp_post_mod_gamma,2,function(x){HPDinterval(as.mcmc(x))})
 
-pdf("plots/Gamma_Means_only_Lisbon/Gamma_EV.pdf")
+pdf("plots/Figure4.pdf")
 plot(1:6,eigen(gamma)$values,xlab=expression(paste("Canonical axis of selection (",y[i],")")),ylab=expression(paste("Strength of selection (eigenvalues ",lambda[i],")")),cex.axis=1.2,las=1,cex.lab=1.1,space=0,width=1,xlim=c(0.5,6.5),ylim=c(-13,13),bty="n",pch=8,type="n")
 abline(h=0,lty=2)
 
@@ -171,8 +171,6 @@ HPDinterval(as.mcmc((all_gamma_EV)),prob=.95)
 
 ####### NOW THE GAMMA ESTIMATES
 
-
-
 ### Intervals ###
 post_dist_all <-HPDinterval(model_MCMC$Sol,prob=.95)[vect_retained_effects,]
 post_dist_all= post_dist_all[c(7:21,1:6),]
@@ -184,7 +182,7 @@ mode_post_Gamma <- posterior.mode(model_MCMC$Sol)[vect_retained_effects]
 mode_post_Gamma = mode_post_Gamma[c(7:21,1:6)]
 
 ##########################
-pdf("plots/Gamma_Means_only_Lisbon/Gamma_values_no_Betas.pdf")
+pdf("plots/FigureS12.pdf")
 plot(mode_post_Gamma,c(21:1),yaxt="n",bty="n",ylab="",xlim=c(-6,7),xlab="")
 
 abline(v=0)

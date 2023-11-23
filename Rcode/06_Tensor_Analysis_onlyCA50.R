@@ -1,3 +1,6 @@
+# This code computes the Tensor analysis comparing the G matrix of the CA[1-3]50 populations 
+# Produce Figure 3A,B,C and Figure S13
+
 rm(list = ls())
 gc()
 library(MCMCglmm)
@@ -172,6 +175,8 @@ save(list=ls(),file="Output_files/RData/Tensor_processed_onlyCA50.Rdata")
 
 ### End of the parallel thread
 
+
+rm(list=ls());gc()
 #### Back on local computer
 source('Rcode/functions_tensor.R', chdir = TRUE)
 load('Output_files/RData/Tensor_processed_onlyCA50.Rdata')
@@ -196,7 +201,7 @@ HPD.eT.val_80 <- cbind(HPDinterval(as.mcmc(MCMC.covtensor$MCMC.S.val[, 1:nnonzer
 round(HPD.eT.val, 3)
 #
 # Figure A1
-pdf("plots/Tensor_CA50_A1.pdf")
+pdf("plots/FigureS10A.pdf")
 par(mfrow=c(1,1))
 
 plot((1:nnonzero)-0.2,unique(MCMC.covtensor$tensor.summary[1:(n*nnonzero),1]),xlab="",ylab=expression(alpha),pch=16,cex=1,xaxt="n",frame.plot=F,xlim=c(0.5,3.5),ylim=c(0,max(HPD.eT.val)),type="n")
@@ -226,7 +231,7 @@ for (i in 1:m){
 }
 
 #Figure A2
-pdf("plots/Tensor_CA50_A2.pdf")
+pdf("plots/FigureS10B.pdf")
 
 k=1
 plot(1:m,MCMC.covtensor$av.G.coord[,k,],ylab="",xlab="",pch=16,xaxt="n",frame.plot=F,xlim=c(0.5,m+.5),ylim=c(-.3,.5),main = "")
@@ -270,7 +275,7 @@ unique(MCMC.covtensor$tensor.summary[,1])[1]/sum(unique(MCMC.covtensor$tensor.su
 abs(MCMC.covtensor$tensor.summary[1,2])/sum(abs(MCMC.covtensor$tensor.summary[1:n,2]))
 abs(MCMC.covtensor$tensor.summary[2,2])/sum(abs(MCMC.covtensor$tensor.summary[1:n,2]))
 
-pdf("plots/Tensor_CA50_A3.pdf")
+pdf("plots/FigureS10C.pdf")
 
 par(mfrow=c(1,2))
 #par(mar=c(5,4,4,2))
@@ -289,172 +294,6 @@ mtext("e12",side=3,at=0,font=2)
 dev.off()
 
 
-plot(1:m,rowMeans(e21.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e21))))
-axis(1,at=1:m,labels=Gnames,las=2)
-arrows(1:m,rowMeans(e21.proj),1:m,HPD.e21[,1],length=0.1,angle=90)
-arrows(1:m,rowMeans(e21.proj),1:m,HPD.e21[,2],length=0.1,angle=90)
-mtext("e21",side=3,at=0,font=2)
-
-plot(1:m,rowMeans(e22.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,7),ylim=c(0,(max(HPD.e22))))
-axis(1,at=1:m,labels=Gnames,las=2)
-arrows(1:m,rowMeans(e22.proj),1:m,HPD.e22[,1],length=0.1,angle=90)
-arrows(1:m,rowMeans(e22.proj),1:m,HPD.e22[,2],length=0.1,angle=90)
-mtext("e22",side=3,at=0,font=2)
-
-
 
 save(list=ls(),file='~/Projets_Recherches/Celegans/G_matrix_manuscript/2021_01/New_Tensor/Analysis_Cemee_Pop_WI_tensor_onlyCA50.RData')
-
-
-###### STOPPED HERE
-
-# Now I need to compute confidence intervals for the correlations
-
-# Sample in the posterior of the gamma est. MCMC model
-vect_sampling <- 1:1000
-cor_dist <- array(dim=c(4,length(vect_sampling),6))
-
-for(i in 1:length(vect_sampling)){
-  temp_vect =(model_MCMC$Sol[vect_sampling[i],2:22])[c(7:21,1:6)]
-  rdm.gamma <- matrix(c(temp_vect[16]*2,temp_vect[1:5],
-                        temp_vect[1],temp_vect[17]*2,temp_vect[6:9],
-                        temp_vect[c(2,6)],temp_vect[18]*2,temp_vect[10:12],
-                        temp_vect[c(3,7,10)],temp_vect[19]*2,temp_vect[13:14],
-                        temp_vect[c(4,8,11,13)],temp_vect[20]*2,temp_vect[15],
-                        temp_vect[c(5,9,12,14,15)],temp_vect[21]*2),6,6)
-  
-  cor_dist[1,i,] <- cor(e11,eigen(rdm.gamma)$vectors)
-  cor_dist[2,i,] <- cor(e12,eigen(rdm.gamma)$vectors)
-  cor_dist[3,i,] <- cor(e21,eigen(rdm.gamma)$vectors)
-  cor_dist[4,i,] <- cor(e22,eigen(rdm.gamma)$vectors)
-  
-}
-for(k in 1:4){
-  for(i in 1:ncol(cor_dist[k,,])){
-    cor_dist[k,,i] <- sort(abs(cor_dist[k,,i]))
-  }
-}
-
-vect_col <- brewer.pal(n = 6, name = 'Dark2')
-
-
-plot(density(cor_dist[k,,6]),xlim=c(0,1),las=1,bty="n",col=vect_col[6],main="",xlab="Correlation")
-for(i in 1:5) lines(density(cor_dist[k,,i]),col=vect_col[i])
-legend(.2,c(15,6,15,6)[k],expression(y[1], y[2], y[3], y[4], y[5], y[6]),col=vect_col,lwd=1,bty='n',ncol=2,cex=.8)
-
-########################################################################
-########################################################################
-########################################################################
-########################################################################
-
-cor(e11,eigen(gamma)$vectors)
-cor(e12,eigen(gamma)$vectors)
-cor(e21,eigen(gamma)$vectors)
-cor(e22,eigen(gamma)$vectors)
-
-
-# Additionaly, could we estimate the loss of genetic variation along these axis
-# in the simulated Gs
-Simul = new.env()
-load("~/PATH/TO/DIR/Simulations_AmNat/Main_model_output_list_with_metadata.RData", envir = Simul)
-
-# The list containing the 20 MCMCglmm
-# The list containing the 20 MCMCglmm
-
-Garray_Simuls <- array(, c(n, n, 20, MCMCsamp))
-dimnames(Garray_Simuls) <- list(traitnames, traitnames, paste0("Simul_",1:20))
-Parray_Simuls <- array(, c(n, n, 20, MCMCsamp))
-dimnames(Parray_Simuls) <- list(traitnames, traitnames, paste0("Simul_",1:20))
-
-for (i in 1:20) {
-	for (j in 1:MCMCsamp) {
-		G <- matrix(Simul$model_VCV_evolved[[i]]$VCV_mat[j,1:(n^2)],ncol=n)
-		R1 <- matrix(Simul$model_VCV_evolved[[i]]$VCV_mat[j,((n^2) + 1):((n^2) * 2)],ncol=n)
-		Garray_Simuls[, , i, j] <- G
-#		Earray1[, , i, j] <- R1
-		Parray_Simuls[, , i, j] <- G + R1
-	}
-}
-
-###
-dim(Garray);dim(Garray_Simuls)
-Garray_all <- array(, c(n, n, 27, MCMCsamp)) 
-for(i in 1:27){
-	if(i %in% 1:7) Garray_all[,,i,] <- Garray[,,i,]
-	if(i > 7) Garray_all[,,i,] <- Garray_Simuls[,,(i-7),]
-}
-
-m <- 27 ; Gnames <- c(Gnames,paste0("Simul_",1:20))
-
-## And then we could also add the M-Matrices
-
-# The list containing the 20 MCMCglmm
-
-Garray_Ms <- array(, c(n, n, 2, MCMCsamp))
-dimnames(Garray_Ms) <- list(traitnames, traitnames, paste0("MA_",c("N2","PB306")))
-
-for (i in 1:2) {
-	for (j in 1:MCMCsamp) {
-		
-		G <- matrix(MA_lines$VCV_mat[[i]]$VCV_Mat[j,1:(n^2)],ncol=n)
-		Garray_Ms[, , i, j] <- G
-	}
-}
-
-# We adjust here the final values by /2 for RILS and /5 for MA lines (100 gen.)
-
-dim(Garray_all);dim(Garray_Ms)
-Garray_all2 <- array(, c(n, n, 29, MCMCsamp)) 
-for(i in 1:29){
-	if(i %in% 1:27) Garray_all2[,,i,] <- Garray_all[,,i,]/2
-	if(i > 27) Garray_all2[,,i,] <- Garray_Ms[,,(i-27),]	/5
-}
-
-m <- 29 ; Gnames <- c(Gnames,paste0("MA_",c("N2","PB306")))
-
-e11_all.proj <- apply(Garray_all2, 3:4, proj, b = e11)
-e12_all.proj <- apply(Garray_all2, 3:4, proj, b = e12)
-e13_all.proj <- apply(Garray_all2, 3:4, proj, b = e13)
-HPD.e11_all <- HPDinterval(t(as.mcmc(e11_all.proj)),prob = 0.95)
-HPD.e12_all <- HPDinterval(t(as.mcmc(e12_all.proj)),prob = 0.95)
-HPD.e13_all <- HPDinterval(t(as.mcmc(e13_all.proj)),prob = 0.95)
-
-e21_all.proj <- apply(Garray_all2, 3:4, proj, b = e21)
-e22_all.proj <- apply(Garray_all2, 3:4, proj, b = e22)
-e23_all.proj <- apply(Garray_all2, 3:4, proj, b = e23)
-HPD.e21_all <- HPDinterval(t(as.mcmc(e21_all.proj)),prob = 0.95)
-HPD.e22_all <- HPDinterval(t(as.mcmc(e22_all.proj)),prob = 0.95)
-HPD.e23_all <- HPDinterval(t(as.mcmc(e23_all.proj)),prob = 0.95)
-
-par(mfrow=c(2,2))
-par(mar=c(6,4,4,2))
-par(xaxt="s")
-#vect_x <- c(1:7,jitter(rep(10,20)),13,14)
-vect_x <- c(1:7,seq(9,11,length=20),13,14)
-plot(vect_x,rowMeans(e11_all.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,14),ylim=c(0,(max(HPD.e11_all))),las=2,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-axis(1,at=c(1:7,10,13,14),labels=c(Gnames[1:7],"Simulations","N2","PB306"),las=2)
-arrows(vect_x,rowMeans(e11_all.proj),vect_x,HPD.e11_all[,1],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-arrows(vect_x,rowMeans(e11_all.proj),vect_x,HPD.e11_all[,2],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-mtext("e11",side=3,at=0,font=2)
-
-plot(vect_x,rowMeans(e12_all.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,14),ylim=c(0,(max(HPD.e12_all))),las=2,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-axis(1,at=c(1:7,10,13,14),labels=c(Gnames[1:7],"Simulations","N2","PB306"),las=2)
-arrows(vect_x,rowMeans(e12_all.proj),vect_x,HPD.e12_all[,1],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-arrows(vect_x,rowMeans(e12_all.proj),vect_x,HPD.e12_all[,2],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-mtext("e12",side=3,at=0,font=2)
-
-
-plot(vect_x,rowMeans(e21_all.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,14),ylim=c(0,(max(HPD.e21_all))),col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-axis(1,at=c(1:7,10,13,14),labels=c(Gnames[1:7],"Simulations","N2","PB306"),las=2)
-arrows(vect_x,rowMeans(e21_all.proj),vect_x,HPD.e21_all[,1],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-arrows(vect_x,rowMeans(e21_all.proj),vect_x,HPD.e21_all[,2],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-mtext("e21",side=3,at=0,font=2)
-
-plot(vect_x,rowMeans(e22_all.proj),ylab="lambda",xlab="",pch=16,cex = 1,xaxt="n",frame.plot=F,xlim=c(0,14),ylim=c(0,(max(HPD.e22_all))),col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-axis(1,at=c(1:7,10,13,14),labels=c(Gnames[1:7],"Simulations","N2","PB306"),las=2)
-arrows(vect_x,rowMeans(e22_all.proj),vect_x,HPD.e22_all[,1],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-arrows(vect_x,rowMeans(e22_all.proj),vect_x,HPD.e22_all[,2],length=0.1,angle=90,col=c(rep("black",7),rep("green",20),"magenta","yellow"))
-mtext("e22",side=3,at=0,font=2)
-
-save(list=ls(),file='~/PATH/TO/DIR/Cemee_Pop_WI/Analysis_Cemee_Pop_WI_tensor.RData')
 

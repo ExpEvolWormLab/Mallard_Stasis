@@ -1,3 +1,5 @@
+# This code produce Figure S3 - a comparison between the observed state frequencies and the predicted state frequencies from the transition rates model estimates
+
 rm(list = ls())
 library(data.table)
 library(pracma)
@@ -48,7 +50,6 @@ nb_sec= nb_sec+3
 
 ## Here we use the estimation of the transition rates to model the expected state frequencies
 state_from_Stan=apply(as.matrix(round(exp(state_final[, vect_P_traits]),digits=4)),1, extract_P_inf)
-
 vect_exp =as.matrix(round(exp(state_final[, vect_P_traits]),digits=4))[44,]
 	P_mat=c(0, vect_exp[1:3],0, vect_exp[4:6],0)
 	P_mat=matrix(as.numeric(P_mat),3,3)
@@ -60,7 +61,7 @@ state_from_Stan_toplot=state_from_Stan[rowSums(state_from_Stan)==1,]
 state_final$sex=tstrsplit(state_final$pop_label,"_")[[2]]
 
 ### We can plot the observed vs predicted values
-pdf("plots/Markov_assumptions_state_freq.pdf")
+pdf("plots/FigureS3.pdf")
 par(mfrow=c(1,3),bty="n",las=1)
 
 plot(inv.logit(state_final$mean_still)[is.na(state_final$sex)], state_from_Stan[is.na(state_final$sex),1],pch=16,log="",ylab="Frequency of staying still (Markov approximation)",xlab="Observed frequency of staying still",main='Still',xlim=c(0,1),ylim=c(0,1))

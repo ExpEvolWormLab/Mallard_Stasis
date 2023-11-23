@@ -1,3 +1,5 @@
+#This code compute a G matrix from the founders WI
+
 rm(list=ls());gc()
 library(MCMCglmm)
 library(psych)

@@ -1,3 +1,5 @@
+## This code computes the transition rates estimates and the state frequencies in a single data frame - preparing for Figure 1C and S4/S5
+
 rm(list=ls())
 library(data.table)
 library(lme4)

@@ -17,6 +17,7 @@ final_merged =read.table("data/Final_merged_data_NGM.txt",h=TRUE,sep="\t")
 #We remove the last block which is very specific and will be analyzed separately
 final_merged=subset(final_merged,!data_group_name=='B400')
 
+#Founders Wild Isolates (WI) and population labels
 vect_WI <- c("AB1","CB4507", "CB4852","CB4855" , "CB4856" ,"CB4858", "JU319","JU345" , "JU400" , "MY1","MY16","N2anc","PB306" ,"PX174","PX179" , "RC301")
 vect_populations <- c("A6140", "CA150", "CA250", "CA350", "CA1100", "CA2100", "CA3100")
 

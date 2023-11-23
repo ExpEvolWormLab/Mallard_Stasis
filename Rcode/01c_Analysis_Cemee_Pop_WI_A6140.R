@@ -1,3 +1,6 @@
+### This R code compute the G matrix for the A6140 population and then
+### load all population G-matrices and produce several plots
+
 rm(list=ls());gc()
 library(MCMCglmm)
 library(psych)
@@ -14,10 +17,10 @@ library(nlme)
 #Load populations data
 final_merged =read.table("data/Final_merged_data_NGM.txt",h=TRUE,sep="\t")
 
-
 #We remove the last block which is very specific and will be analyzed separately
 final_merged=subset(final_merged,!data_group_name=='B400')
 
+#Founders Wild Isolates (WI) and population labels
 vect_WI <- c("AB1","CB4507", "CB4852","CB4855" , "CB4856" ,"CB4858", "JU319","JU345" , "JU400" , "MY1","MY16","N2anc","PB306" ,"PX174","PX179" , "RC301")
 vect_populations <- c("A6140", "CA150", "CA250", "CA350", "CA1100", "CA2100", "CA3100")
 
@@ -40,6 +43,9 @@ final_A6140[,j] <- (final_A6140[,j]-mean(final_A6140[,j]))/sd(final_A6140[,j])
 }
 
 vect_P_traits <- c("T12","T13","T21","T23","T31","T32")
+
+
+## Compute the A6140 G Matrix
 
 VCV_mat_A6140 = NULL
 nb_trait = length(vect_P_traits)
@@ -86,76 +92,17 @@ plot.acfs <- function(x) {
 save(list=ls(),file='Output_files/RData/VCV_A6140.RData')
 
 
+### Load all G matrices 
+
 rm(list=ls())
 gc()
 load('Output_files/RData/VCV_A6140.RData')
 load('Output_files/RData/VCV_CA50.RData')
 load('Output_files/RData/VCV_CA100.RData')
-
-### Then we should plot them
-
 v_col = c("chartreuse","cadetblue1", "cornflowerblue", "slateblue2", "violetred1","darkorange","firebrick")
 
-pdf(file='plots/G_mat_ALL.pdf',h=8,w=6)
 
-par(mar=c(5,7,4,2))
-vect_Var <- c(2:6,9:12,16:18,23,24,30,1,8,15,22,29,36)
-vProb <- .95
-
-plot(c(VCV_mat_A6140[[1]]$G1_mat/2)[vect_Var],c(24:10,6:1),yaxt="n",bty="n",xlim=c(-.08,.18),xlab="Genetic (co-)variances",xaxt="n",type='n',ylab="",cex.lab=1.2)
-
-mtext(side=2,"Phenotypic traits    \n Diagonal                                  Off-diagonal            ",padj=-2,cex=1.2)
-lines(c(0,0),c(24.5,8.5))
-lines(c(0,0),c(.5,5.5),col="red")
-
-axis(side=1,pos=0)
-
-axis(side=2,at=c(24:10,6:1),labels=c("SF*SB","SF*FS","SF*FB","SF*BS","SF*BF",
-"SB*FS","SB*FB","SB*BS","SB*BF","FS*FB",
-"FS*BS","FS*BF","FB*BS","FB*BF","BS*BF",
-"SF","SB","FS","FB","BS","BF"),las=1)
-
-i=1
-temp_95 <- HPDinterval(VCV_mat_A6140[[i]]$VCV_Mat[,1:36]/2,prob=.95)
-temp_80 <- HPDinterval(VCV_mat_A6140[[i]]$VCV_Mat[,1:36]/2,prob=.8)
-
-arrows(temp_95[vect_Var,1],c(24:10,6:1)+(.25*(i-1)),temp_95[vect_Var,2],c(24:10,6:1)+(.25*(i-1)),code=3,length=.02,angle=90)
-arrows(temp_80[vect_Var,1],c(24:10,6:1)+(.25*(i-1)),
-temp_80[vect_Var,2],c(24:10,6:1)+(.25*(i-1)),code=3,length=0,angle=90,lwd=2,col="chartreuse")
-
-points(c(VCV_mat_A6140[[i]]$G1_mat/2)[vect_Var],c(24:10,6:1)+(.25*(i-1)),pch=21,bg="black",cex=.6)
-
-
-for(i in 1:3){
-
-temp_95 <- HPDinterval(VCV_mat_CA50[[i]]$VCV_Mat[,1:36]/2,prob=.95)
-temp_80 <- HPDinterval(VCV_mat_CA50[[i]]$VCV_Mat[,1:36]/2,prob=.8)
-
-arrows(temp_95[vect_Var,1],c(24:10,6:1)+.2+(.05*(i-1)),temp_95[vect_Var,2],c(24:10,6:1)+.2+(.05*(i-1)),code=3,length=.02,angle=90)
-arrows(temp_80[vect_Var,1],c(24:10,6:1)+.2+(.05*(i-1)),
-temp_80[vect_Var,2],c(24:10,6:1)+.2+(.05*(i-1)),code=3,length=0,angle=90,lwd=2,col=v_col[i+1])
-
-temp_95 <- HPDinterval(VCV_mat_CA100[[i]]$VCV_Mat[,1:36]/2,prob=.95)
-temp_80 <- HPDinterval(VCV_mat_CA100[[i]]$VCV_Mat[,1:36]/2,prob=.8)
-
-arrows(temp_95[vect_Var,1],c(24:10,6:1)+.5+(.05*(i-1)),temp_95[vect_Var,2],c(24:10,6:1)+.5+(.05*(i-1)),code=3,length=.02,angle=90)
-arrows(temp_80[vect_Var,1],c(24:10,6:1)+.5+(.05*(i-1)),
-temp_80[vect_Var,2],c(24:10,6:1)+.5+(.05*(i-1)),code=3,length=0,angle=90,lwd=2,col=v_col[i+4])
-
-points(c(VCV_mat_CA50[[i]]$G1_mat/2)[vect_Var],c(24:10,6:1)+.2+(.05*(i-1)),pch=21,bg="black",cex=.6)
-points(c(VCV_mat_CA100[[i]]$G1_mat/2)[vect_Var],c(24:10,6:1)+.5+(.05*(i-1)),pch=21,bg="black",cex=.6)
-
-
-}
-
-legend(.06,23,c("A6140","CA150","CA250","CA350","CA1100","CA2100","CA3100"),ncol=2,v_col,bty="n")
-
-dev.off()
-
-
-
-#### Then traces
-
+#### Then compute the trace of the G-matrices
 VCV_mat <- list()
 VCV_mat[[1]] <- VCV_mat_A6140[[1]]
 for(i in 1:3) VCV_mat[[i+1]] <-  VCV_mat_CA50[[i]]
@@ -180,6 +127,56 @@ load("Output_files/RData/TRUE_G_Analysis_Cemee_Pop_WI_A6140_subset_60_G1_matrice
 A6140_mat_subset <- temp_rand$df_G1
 rm(temp_rand);gc()
 
+
+
+################################################################
+#   A6140 matrix with random
+################################################################
+
+pdf(file='plots/Figure2A.pdf',h=7,w=4.5)
+
+par(mar=c(5,7,4,2))
+vect_Var <- c(2:6,9:12,16:18,23,24,30,1,8,15,22,29,36)
+vProb <- .95
+
+plot(c(VCV_mat_A6140[[1]]$G1_mat/2)[vect_Var],c(24:10,6:1),yaxt="n",bty="n",xlim=c(-.08,.19),xlab="Genetic (co)variances",xaxt="n",type='n',ylab="",cex.lab=1.2)
+
+#mtext(side=2,"Phenotypic traits    \n Diagonal                                  Off-diagonal            ",padj=-2,cex=1.2)
+lines(c(0,0),c(24.5,8.5))
+lines(c(0,0),c(.5,5.5),col="red")
+
+axis(side=1,pos=0)
+
+axis(side=2,at=c(24:10,6:1),labels=c("SF*SB","SF*FS","SF*FB","SF*BS","SF*BF",
+                                     "SB*FS","SB*FB","SB*BS","SB*BF","FS*FB",
+                                     "FS*BS","FS*BF","FB*BS","FB*BF","BS*BF",
+                                     "SF","SB","FS","FB","BS","BF"),las=1)
+
+i=1
+temp_95 <- HPDinterval(VCV_mat_A6140[[i]]$VCV_Mat[,1:36]/2,prob=.95)
+temp_80 <- HPDinterval(VCV_mat_A6140[[i]]$VCV_Mat[,1:36]/2,prob=.8)
+
+temp_95_rand <- HPDinterval(as.mcmc(VCV_mat_rand[[i]][,1:36]/2),prob=.95)
+temp_80_rand <- HPDinterval(as.mcmc(VCV_mat_rand[[i]][,1:36]/2),prob=.8)
+
+arrows(temp_95[vect_Var,1],c(24:10,6:1)+(.25*(i-1)),temp_95[vect_Var,2],c(24:10,6:1)+(.25*(i-1)),code=3,length=.02,angle=90)
+arrows(temp_80[vect_Var,1],c(24:10,6:1)+(.25*(i-1)),
+       temp_80[vect_Var,2],c(24:10,6:1)+(.25*(i-1)),code=3,length=0,angle=90,lwd=2,col="firebrick3")
+
+points(c(VCV_mat_A6140[[i]]$G1_mat/2)[vect_Var],c(24:10,6:1)+(.25*(i-1)),pch=21,bg="black",cex=.6)
+
+
+arrows(temp_95_rand[vect_Var,1],c(24:10,6:1)+(.25*(i-1)-.3),temp_95_rand[vect_Var,2],c(24:10,6:1)+(.25*(i-1)-.3),code=3,length=.02,angle=90,col="orange")
+legend(.02,23,c("A6140 estimates","95% CI \n of post. means"),ncol=1,c("firebrick3","orange"),bty="n")
+
+dev.off()
+
+
+
+############################################################################################################
+####################### Compute the Trace of the G matrices.      ##########################################
+############################################################################################################
+
 all_traces <- array(,c(nrow(VCV_mat[[1]]$VCV_Mat),7))
 all_traces_rand <- array(,c(nrow(VCV_mat[[1]]$VCV_Mat),7))
 traces_A6140_subset <- NULL
@@ -196,38 +193,41 @@ for(i in 1:nrow(VCV_mat[[1]]$VCV_Mat)){
   }
 }
 
-pdf(file="plots/Traces.pdf",w=4)
+### 
+all_traces_noCA50 <- all_traces[,c(1,5:7)]
+all_traces_rand_noCA50 <- all_traces_rand[,c(1,5:7)]
 
-plot(1:7,colMeans(all_traces),ylim=c(0,.6),bty="n",las=1,xaxt="n",ylab="G-matrix trace",xlab="",xlim=c(0.8,8))
-axis(side=1,at=1:7,c("A6140","CA150","CA250","CA350","CA1100","CA2100","CA3100"),las=2)
-int_95 <- apply(all_traces,2,function(x){
-	HPDinterval(as.mcmc(x))	
-})
 
-int_80 <- apply(all_traces,2,function(x){
-	HPDinterval(as.mcmc(x),prob=.8)	
-})
+pdf(file="plots/Figure2B.pdf",w=4)
 
-arrows(1:7,int_95[1,],1:7,int_95[2,],code=3,length=.05,angle=90)
-arrows(1:7, int_80[1,],1:7, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
-points(1:7,colMeans(all_traces),pch=16)
-
-int_95_rand <- apply(all_traces_rand,2,function(x){
+plot(1:4,colMeans(all_traces_noCA50),ylim=c(0,.6),bty="n",las=1,xaxt="n",ylab="Total genetic variance (trace)",xlab="",xlim=c(0.8,5))
+axis(side=1,at=1:4,c("A6140","CA1100","CA2100","CA3100"),las=2)
+int_95 <- apply(all_traces_noCA50,2,function(x){
   HPDinterval(as.mcmc(x))	
 })
 
-int_80_rand <- apply(all_traces_rand,2,function(x){
+int_80 <- apply(all_traces_noCA50,2,function(x){
   HPDinterval(as.mcmc(x),prob=.8)	
 })
 
-arrows(1:7+.25,int_95_rand[1,],1:7+.25,int_95_rand[2,],code=3,length=.05,angle=90)
-arrows(1:7+.25, int_80_rand[1,],1:7+.25, int_80_rand[2,],code=3,length=0,angle=90,lwd=2,col="orange")
-points(1:7+.25,colMeans(all_traces_rand),pch=16)
+arrows(1:4,int_95[1,],1:4,int_95[2,],code=3,length=.05,angle=90)
+arrows(1:4, int_80[1,],1:4, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
+points(1:4,colMeans(all_traces_noCA50),pch=16)
 
+int_95_rand <- apply(all_traces_rand_noCA50,2,function(x){
+  HPDinterval(as.mcmc(x))	
+})
 
-legend(2,.6,c("Observed","Null"),lwd=2,col=c("firebrick3","orange"),bty="n",cex=1.2)
+int_80_rand <- apply(all_traces_rand_noCA50,2,function(x){
+  HPDinterval(as.mcmc(x),prob=.8)	
+})
+
+arrows(1:4+.25,int_95_rand[1,],1:4+.25,int_95_rand[2,],code=3,length=.05,angle=90,col="orange")
+
+legend(1.8,.6,c("Observed","95% CI \nof post. means"),lwd=2,col=c("firebrick3","orange"),bty="n",cex=1.2)
 
 dev.off()
+
 ############################################################################################
 ## Additional plot to compare the A6140 matrix with all line / with a subset of 60 lines
 ############################################################################################
@@ -252,15 +252,12 @@ arrows(2,A6_subset_95[1],2,A6_subset_95[2],code=3,length=.05,angle=90)
 arrows(2, A6_subset_80[1],2, A6_subset_80[2],code=3,length=0,angle=90,lwd=2,col="magenta")
 points(2,mean(traces_A6140_subset),pch=16)
 
-#A6_subset_80_rand <-  HPDinterval(as.mcmc(traces_A6140_subset_rand),prob=.8)
-#A6_subset_95_rand <-  HPDinterval(as.mcmc(traces_A6140_subset_rand),prob=.95)
-
-#arrows(2.25,A6_subset_95_rand[1],2.25,A6_subset_95_rand[2],code=3,length=.05,angle=90)
-#arrows(2.25, A6_subset_80_rand[1],2.25, A6_subset_80_rand[2],code=3,length=0,angle=90,lwd=2,col="lightblue")
-#points(2.25,mean(traces_A6140_subset_rand),pch=16)
-
 dev.off()
 
+
+############################################################################################
+################### Variance decomposition of the G-matrices ###############################
+############################################################################################
 
 A6_eigens <- eigen(VCV_mat[[1]]$G1_mat/2)$vectors
 
@@ -299,44 +296,171 @@ if(i<=100){
 }
   }
 
-pdf(file="plots/Variance_decomposition_along_EV.pdf")
+
+## no CA50
+all_Var_eigen_noCA50 = all_Var_eigen[,c(1,5:7),]
+all_rand_Var_eigen_noCA50 = all_rand_Var_eigen[,c(1,5:7),]
+
+pdf(file="plots/Variance_decomposition_along_EV_noCA50.pdf")
 par(mfrow=c(2,3))
 for(j in 1:6){
-#plot(1:7,colMeans(all_Var_eigen[,,j]),ylim=c(-.1,.5))
 
-int_95 <- apply(all_Var_eigen[,,j],2,function(x){
-	HPDinterval(as.mcmc(x))	
-})
+  
+  int_95 <- apply(all_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x))	
+  })
+  
+  int_80 <- apply(all_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x),prob=.8)	
+  })
+  
+  int_95_rand <- apply(all_rand_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x))	
+  })
+  
+  int_80_rand <- apply(all_rand_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x),prob=.8)	
+  })
+  
+  plot(1:4,colMeans(all_Var_eigen_noCA50[,,j]),ylim=c(min(int_95[1,]),max(int_95[2,])),bty="n",las=1,xaxt="n",ylab="Variance",xlab="",xlim=c(.8,8))
+  if(j==1) mtext(side=3,expression(g[max]),adj=0,cex=.8)
+  if(j>1) mtext(side=3,bquote(g[.(j)]),adj=0,cex=.8)
+  
+  
+  axis(side=1,at=1:4,c("A6140","CA1100","CA2100","CA3100"),las=2)
+  
+  arrows(1:4,int_95[1,],1:4,int_95[2,],code=3,length=.05,angle=90)
+  arrows(1:4, int_80[1,],1:4, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
+  points(1:4,colMeans(all_Var_eigen_noCA50[,,j]),pch=16)
+  
+  arrows(1:4+.25,int_95_rand[1,],1:4+.25,int_95_rand[2,],code=3,length=.05,angle=90)
+  arrows(1:4+.25, int_80_rand[1,],1:4+.25, int_80_rand[2,],code=3,length=0,angle=90,lwd=2,col="orange")
+  points(1:4+.25,colMeans(all_rand_Var_eigen_noCA50[,,j]),pch=16)
+  
+  
+}
 
-int_80 <- apply(all_Var_eigen[,,j],2,function(x){
-  HPDinterval(as.mcmc(x),prob=.8)	
-})
+dev.off()
 
-int_95_rand <- apply(all_rand_Var_eigen[,,j],2,function(x){
+####################################################################################
+####################################################################################
+
+pdf(file="plots/Figure2C.pdf",w=4)
+
+j=1
+  
+  int_95 <- apply(all_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x))	
+  })
+  
+  int_80 <- apply(all_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x),prob=.8)	
+  })
+  
+  int_95_rand <- apply(all_rand_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x))	
+  })
+  
+  int_80_rand <- apply(all_rand_Var_eigen_noCA50[,,j],2,function(x){
+    HPDinterval(as.mcmc(x),prob=.8)	
+  })
+  
+  plot(1:4,colMeans(all_Var_eigen_noCA50[,,j]),ylim=c(min(int_95[1,]),max(int_95[2,])),bty="n",las=1,xaxt="n",ylab="Genetic variance",xlab="",xlim=c(.8,5))
+  if(j==1) mtext(side=3,expression(g[max]),adj=0,cex=.8)
+  if(j>1) mtext(side=3,bquote(g[.(j)]),adj=0,cex=.8)
+  
+  
+  axis(side=1,at=1:4,c("A6140","CA1100","CA2100","CA3100"),las=2)
+  
+  arrows(1:4,int_95[1,],1:4,int_95[2,],code=3,length=.05,angle=90)
+  arrows(1:4, int_80[1,],1:4, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
+  points(1:4,colMeans(all_Var_eigen_noCA50[,,j]),pch=16)
+  
+  arrows(1:4+.25,int_95_rand[1,],1:4+.25,int_95_rand[2,],code=3,length=.05,angle=90)
+  arrows(1:4+.25, int_80_rand[1,],1:4+.25, int_80_rand[2,],code=3,length=0,angle=90,lwd=2,col="orange")
+  points(1:4+.25,colMeans(all_rand_Var_eigen_noCA50[,,j]),pch=16)
+
+dev.off()
+
+
+################################################################################
+################################################################################
+
+prop_variance_in_gmax <- unlist(lapply(VCV_mat,function(x){
+  eigen(x$G1_mat/2)$values[1]/sum(eigen(x$G1_mat/2)$values)
+}))
+
+# for plot
+gmax_var =paste("(",round(prop_variance_in_gmax,2)*100,"%)",sep="")
+
+pdf(file="plots/Variance_decomposition_along_EV_only_gmax.pdf",w=4)
+
+j=1
+  
+  int_95 <- apply(all_Var_eigen[,,j],2,function(x){
+    HPDinterval(as.mcmc(x))	
+  })
+  
+  int_80 <- apply(all_Var_eigen[,,j],2,function(x){
+    HPDinterval(as.mcmc(x),prob=.8)	
+  })
+  
+  int_95_rand <- apply(all_rand_Var_eigen[,,j],2,function(x){
+    HPDinterval(as.mcmc(x))	
+  })
+  
+  int_80_rand <- apply(all_rand_Var_eigen[,,j],2,function(x){
+    HPDinterval(as.mcmc(x),prob=.8)	
+  })
+  prop_variance_in_gmax[1]
+  
+  plot(1:7,colMeans(all_Var_eigen[,,j]),ylim=c(min(int_95[1,]),max(int_95[2,]+0.03)),bty="n",las=1,xaxt="n",ylab=expression(paste("Genetic variance in ",g[max])),xlab="",xlim=c(.8,8))
+  axis(side=1,at=1:7,c("A6140","CA150","CA250","CA350","CA1100","CA2100","CA3100"),las=2)
+  
+  arrows(1:7,int_95[1,],1:7,int_95[2,],code=3,length=.05,angle=90)
+  arrows(1:7, int_80[1,],1:7, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
+  points(1:7,colMeans(all_Var_eigen[,,j]),pch=16)
+  
+  text(1:7,int_95[2,]+.01,gmax_var)
+  
+  arrows(1:7+.25,int_95_rand[1,],1:7+.25,int_95_rand[2,],code=3,length=.05,angle=90,col="orange")
+  legend(2,.35,c("Observed","95% CI \nof post. means"),lwd=2,col=c("firebrick3","orange"),bty="n",cex=1.2)
+
+dev.off()
+
+pdf(file="plots/Variance_decomposition_along_EV_only_gmax_noCA50.pdf",w=4)
+
+j=1
+
+int_95 <- apply(all_Var_eigen_noCA50[,,j],2,function(x){
   HPDinterval(as.mcmc(x))	
 })
 
-int_80_rand <- apply(all_rand_Var_eigen[,,j],2,function(x){
+int_80 <- apply(all_Var_eigen_noCA50[,,j],2,function(x){
   HPDinterval(as.mcmc(x),prob=.8)	
 })
 
-plot(1:7,colMeans(all_Var_eigen[,,j]),ylim=c(min(int_95[1,]),max(int_95[2,])),bty="n",las=1,xaxt="n",ylab="Variance",xlab="",xlim=c(.8,8))
-if(j==1) mtext(side=3,expression(g[max]),adj=0,cex=.8)
-if(j>1) mtext(side=3,bquote(g[.(j)]),adj=0,cex=.8)
+int_95_rand <- apply(all_rand_Var_eigen_noCA50[,,j],2,function(x){
+  HPDinterval(as.mcmc(x))	
+})
+
+int_80_rand <- apply(all_rand_Var_eigen_noCA50[,,j],2,function(x){
+  HPDinterval(as.mcmc(x),prob=.8)	
+})
 
 
-axis(side=1,at=1:7,c("A6140","CA150","CA250","CA350","CA1100","CA2100","CA3100"),las=2)
+plot(1:4,colMeans(all_Var_eigen_noCA50[,,j]),ylim=c(min(int_95[1,]),max(int_95[2,]+0.03)),bty="n",las=1,xaxt="n",ylab=expression(paste("Genetic variance in ",g[max])),xlab="",xlim=c(.8,8))
+axis(side=1,at=1:4,c("A6140","CA1100","CA2100","CA3100"),las=2)
 
-arrows(1:7,int_95[1,],1:7,int_95[2,],code=3,length=.05,angle=90)
-arrows(1:7, int_80[1,],1:7, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
-points(1:7,colMeans(all_Var_eigen[,,j]),pch=16)
+arrows(1:4,int_95[1,],1:4,int_95[2,],code=3,length=.05,angle=90)
+arrows(1:4, int_80[1,],1:4, int_80[2,],code=3,length=0,angle=90,lwd=2,col="firebrick3")
+points(1:4,colMeans(all_Var_eigen_noCA50[,,j]),pch=16)
 
-arrows(1:7+.25,int_95_rand[1,],1:7+.25,int_95_rand[2,],code=3,length=.05,angle=90)
-arrows(1:7+.25, int_80_rand[1,],1:7+.25, int_80_rand[2,],code=3,length=0,angle=90,lwd=2,col="orange")
-points(1:7+.25,colMeans(all_rand_Var_eigen[,,j]),pch=16)
+text(1:4,int_95[2,]+.01,gmax_var[c(1,5:7)])
 
+arrows(1:4+.25,int_95_rand[1,],1:4+.25,int_95_rand[2,],code=3,length=.05,angle=90,col="orange")
 
-}
+legend(2,.35,c("Observed","95% CI \nof post. means"),lwd=2,col=c("firebrick3","orange"),bty="n",cex=1.2)
 
 dev.off()
 
@@ -370,8 +494,6 @@ for(k in 1:7){
 
   plot(1:6,temp_eigen_decomposition$values,ylim=c(min(int_95[,1]),max(int_95[,2])),bty="n",las=1,xaxt="n",ylab="Variance along eigenV",xlab="",xlim=c(.8,8),type="n")  
   axis(side=1,at=1:6,c("gmax","g2","g3","g4","g5","g6"),las=2)
-  #arrows(1:6,int_95[,1],1:6,int_95[,2],code=3,length=.05,angle=90)
-  #arrows(1:6, int_80[,1],1:6, int_80[,2],code=3,length=0,angle=90,lwd=2,col="firebrick3")
   points(1:6,colMeans(temp_Var_eigen),pch=16)
 
   arrows(1:6+.25,int_95_rand[,1],1:6+.25,int_95_rand[,2],code=3,length=.05,angle=90)
@@ -381,8 +503,6 @@ for(k in 1:7){
 }
 }
 dev.off()
-
-
 
 
 
@@ -425,60 +545,14 @@ for(j in 1:6){
   arrows(2, HPDinterval(as.mcmc(A6140_subset_Var_eigen[,j]),.8)[1],2, HPDinterval(as.mcmc(A6140_subset_Var_eigen[,j]),.8)[2],code=3,length=0,angle=90,lwd=2,col="magenta")
   points(2,colMeans(A6140_subset_Var_eigen)[j],pch=16)
   
-  #arrows(2.25, HPDinterval(as.mcmc(A6140_subset_rand_Var_eigen[,j]),.95)[1],2.25, HPDinterval(as.mcmc(A6140_subset_rand_Var_eigen[,j]),.95)[2],code=3,length=.05,angle=90)
-  #arrows(2.25, HPDinterval(as.mcmc(A6140_subset_rand_Var_eigen[,j]),.8)[1],2.25, HPDinterval(as.mcmc(A6140_subset_rand_Var_eigen[,j]),.8)[2],code=3,length=0,angle=90,lwd=2,col="lightblue")
-  #points(2.25,colMeans(A6140_subset_rand_Var_eigen)[j],pch=16)
-  
 }
 
 dev.off()
 
-################################################################
-#   A6140 matrix with random
-################################################################
-
-pdf(file='plots/G_mat_A6140_with_Randoms.pdf',h=7,w=4.5)
-
-par(mar=c(5,7,4,2))
-vect_Var <- c(2:6,9:12,16:18,23,24,30,1,8,15,22,29,36)
-vProb <- .95
-
-plot(c(VCV_mat_A6140[[1]]$G1_mat/2)[vect_Var],c(24:10,6:1),yaxt="n",bty="n",xlim=c(-.08,.19),xlab="Genetic (co-)variances",xaxt="n",type='n',ylab="",cex.lab=1.2)
-
-mtext(side=2,"Phenotypic traits    \n Diagonal                                  Off-diagonal            ",padj=-2,cex=1.2)
-lines(c(0,0),c(24.5,8.5))
-lines(c(0,0),c(.5,5.5),col="red")
-
-axis(side=1,pos=0)
-
-axis(side=2,at=c(24:10,6:1),labels=c("SF*SB","SF*FS","SF*FB","SF*BS","SF*BF",
-                                     "SB*FS","SB*FB","SB*BS","SB*BF","FS*FB",
-                                     "FS*BS","FS*BF","FB*BS","FB*BF","BS*BF",
-                                     "SF","SB","FS","FB","BS","BF"),las=1)
-
-i=1
-temp_95 <- HPDinterval(VCV_mat_A6140[[i]]$VCV_Mat[,1:36]/2,prob=.95)
-temp_80 <- HPDinterval(VCV_mat_A6140[[i]]$VCV_Mat[,1:36]/2,prob=.8)
-
-temp_95_rand <- HPDinterval(as.mcmc(VCV_mat_rand[[i]][,1:36]/2),prob=.95)
-temp_80_rand <- HPDinterval(as.mcmc(VCV_mat_rand[[i]][,1:36]/2),prob=.8)
-
-arrows(temp_95[vect_Var,1],c(24:10,6:1)+(.25*(i-1)),temp_95[vect_Var,2],c(24:10,6:1)+(.25*(i-1)),code=3,length=.02,angle=90)
-arrows(temp_80[vect_Var,1],c(24:10,6:1)+(.25*(i-1)),
-       temp_80[vect_Var,2],c(24:10,6:1)+(.25*(i-1)),code=3,length=0,angle=90,lwd=2,col="firebrick3")
-
-points(c(VCV_mat_A6140[[i]]$G1_mat/2)[vect_Var],c(24:10,6:1)+(.25*(i-1)),pch=21,bg="black",cex=.6)
 
 
-arrows(temp_95_rand[vect_Var,1],c(24:10,6:1)+(.25*(i-1)-.3),temp_95_rand[vect_Var,2],c(24:10,6:1)+(.25*(i-1)-.3),code=3,length=.02,angle=90)
-arrows(temp_80_rand[vect_Var,1],c(24:10,6:1)+(.25*(i-1)-.3),
-       temp_80_rand[vect_Var,2],c(24:10,6:1)+(.25*(i-1)-.3),code=3,length=0,angle=90,lwd=2,col="orange")
 
-points(colMeans(VCV_mat_rand[[i]]/2)[vect_Var],c(24:10,6:1)+(.25*(i-1)-.3),pch=21,bg="black",cex=.6)
 
-legend(.02,23,c("A6140 estimates","NULL distribution \n of post. means"),ncol=1,c("firebrick3","orange"),bty="n")
-
-dev.off()
 
 ###
 
@@ -486,9 +560,9 @@ dev.off()
 i=1
 pdf(file='plots/G_mat_A6140_subset.pdf',h=7,w=7.2)
 
-plot(c(VCV_mat_A6140[[1]]$G1_mat/2)[vect_Var],c(24:10,6:1),yaxt="n",bty="n",xlim=c(-.08,.19),xlab="Genetic (co-)variances",xaxt="n",type='n',ylab="",cex.lab=1.2)
+plot(c(VCV_mat_A6140[[1]]$G1_mat/2)[vect_Var],c(24:10,6:1),yaxt="n",bty="n",xlim=c(-.08,.19),xlab="Genetic (co)variances",xaxt="n",type='n',ylab="",cex.lab=1.2)
 
-mtext(side=2,"Phenotypic traits    \n Diagonal                                  Off-diagonal            ",padj=-2,cex=1.2)
+#mtext(side=2,"Phenotypic traits    \n Diagonal                                  Off-diagonal            ",padj=-2,cex=1.2)
 lines(c(0,0),c(24.5,8.5))
 lines(c(0,0),c(.5,5.5),col="red")
 
@@ -523,7 +597,7 @@ arrows(temp_80_subset[vect_Var,1],c(24:10,6:1)-.3, temp_80_subset[vect_Var,2],c(
 vectX_subset=colMedians(A6140_mat_subset)[vect_Var]/2
 points(vectX_subset,c(24:10,6:1)-.3,pch=8,col="grey",cex=.8)
 
-legend(.1,23,c(paste0("A6140 (188 RILs)"),paste0("A6140 (60 RILs)")),pch=c(16,8),lwd=1)
+legend(.1,23,c(paste0("A6140 (188)"),paste0("A6140 (60)")),pch=c(16,8),lwd=1)
 
 dev.off()
 
@@ -533,7 +607,7 @@ dev.off()
 
 
 
-#### The same plot for the CA populations
+#### The same plot for the CA populations - will lead to Figure S7
 i=0
 pdf(file='plots/G_mat_CA_with_Randoms.pdf',h=7,w=7.2)
 
@@ -606,7 +680,10 @@ for(i in 1:6){
   points(vect_x,temp_rand_means[,i],pch=21)  
 
   points(vect_x,temp_TRUE_means[,i],pch=21,bg=v_col)
+
 }
+
+
 
 ###Create tables
 
@@ -620,6 +697,3 @@ for(vect_pop_id in c("A6140","CA150","CA250","CA350","CA1100","CA2100","CA3100")
                             round(1000*matrix(HPDinterval(VCV_mat[[k]]$VCV_Mat)[1:36,2],ncol=6))/1000,"]"),ncol=6),quote=FALSE,sep="\t",row.names=FALSE,col.names=FALSE,file=paste0("Output_files/G_mat_tables/", vect_pop_id,".txt"))
   
 }
-
-
-

@@ -1,3 +1,6 @@
+
+# This code produce the randomized G matrices for all three populations 
+
 rm(list=ls());gc()
 library(MCMCglmm)
 library(ggplot2)
@@ -9,11 +12,11 @@ library(Rmisc)
 library(nlme)
 library(parallel)
 
-
-
+# Load the A6140 G matrix
 load("Output_files/RData/VCV_A6140.RData")
 
 ### Script to estimate the convergence of the posterior mean
+### in order know how long to run the MCMC in the randomized case
 
 pdf(file='plots/MCMC_posterior_mean_convergence_A6140.pdf')
 all_means=NULL
@@ -36,8 +39,8 @@ abline(h=-0.05,lty=2)
 abline(v=300)
 dev.off()
 
-# ### We will then use only 600.000 iterations.
-# 
+#### Using the plot information, we will then run the MCMC for 600.000 iterations.
+ 
 run_parallel_MCMC <- function(list_param){
   i=list_param[[1]]
   temp_final=list_param[[2]]

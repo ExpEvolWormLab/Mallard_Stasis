@@ -1,3 +1,6 @@
+
+# This R code compute 100 G matrices from a subset of randomly chosen 60 inbred lines out of the 188 phenotyped lines of the A6140 population
+
 rm(list=ls());gc()
 library(MCMCglmm)
 library(ggplot2)
